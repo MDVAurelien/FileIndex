@@ -26,9 +26,7 @@ FileIndex is a lightweight Python utility that indexes files in a directory tree
 1. Clone the repository:
 
 ```bash
-# Cloner le dépôt
-git clone https://github.com/MDVAurelien/fileindex.git
-cd fileindex
+git clone ttps://github.com/MDVAurelien/FileIndex.git
 ````
 
 2. Create a config.json file:

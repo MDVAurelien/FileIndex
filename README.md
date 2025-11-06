@@ -80,8 +80,8 @@ python3 fileindex.py search config
 - Subsequent updates: Only scans and updates modified files
 - Search: Near-instantaneous for most queries
 
-## Important
-Important for large filesystems: When indexing very large directory trees (millions of files), the SQLite database can grow significantly in size. Make sure to place the database file (db_path in config.json) on a filesystem with sufficient free space. For reference, indexing 1 million files typically requires approximately 100-200 MB of database storage.
+## Important (for large filesystems)
+When indexing very large directory trees (millions of files), the SQLite database can grow significantly in size. Make sure to place the database file (db_path in config.json) on a filesystem with sufficient free space. For reference, indexing 1 million files typically requires approximately 100-200 MB of database storage.
 
 ## Error Handling
 ### The program handles common errors gracefully:

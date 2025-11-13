@@ -11,6 +11,8 @@ FileIndex is a lightweight Python utility that indexes files in a directory tree
 - Keyword search - Search files by multiple keywords (AND logic)
 - Smart updates - Only updates files that have been modified
 - Automatic cleanup - Removes deleted files from the index
+- Flexible exclusions - Skip files by extension, pattern, or directory
+- Toggle exclusions - Enable/disable all exclusions with a single flag
 - Performance tracking - Shows indexing time and statistics
 - SQLite storage - Reliable and efficient database backend
 - Error handling - Comprehensive error handling for robustness
@@ -36,6 +38,41 @@ git clone https://github.com/MDVAurelien/FileIndex.git
   "db_path": "fileindex.db"
 }
 ````
+3. Advanced Example with Exclusions:
+```json
+{
+  "dataset_path": "/mnt/pool/tank",
+  "db_path": "fileindex.db",
+  "enable_exclusions": true,
+  "exclude_extensions": [
+    ".tmp",
+    ".log",
+    ".cache",
+    ".pyc",
+    ".swp"
+  ],
+  "exclude_patterns": [
+    "*.tmp",
+    "backup_*",
+    "*~",
+    "*.bak",
+    ".DS_Store",
+    "Thumbs.db"
+  ],
+  "exclude_directories": [
+    "__pycache__",
+    ".git",
+    ".svn",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".idea",
+    ".vscode",
+    "build",
+    "dist"
+  ]
+}
+````
 ## Usage
 ### Index files
 Index all files in the configured directory:
@@ -46,6 +83,7 @@ python3 fileindex.py index
 ### Output example:
 ```bash
 Indexing complete. 4752113 files indexed, 0 files removed.
+Excluded 21859 files based on extension/pattern filters.
 Time elapsed: 932.47 seconds
 ````
 

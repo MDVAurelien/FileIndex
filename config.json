@@ -1,4 +1,8 @@
 {
   "dataset_path": "/mnt/pool/tank",
   "db_path": "fileindex.db"
+  "enable_exclusions": false,
+  "exclude_extensions": [".tmp", ".log", ".pyc"],
+  "exclude_patterns": ["*.tmp", "backup_*"],
+  "exclude_directories": ["__pycache__", ".git", "node_modules"]
 }

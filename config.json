@@ -1,8 +1,35 @@
 {
-  "dataset_path": "/mnt/pool/tank",
-  "db_path": "fileindex.db"
+  "dataset_paths": [
+        "/mnt/pool/tank1",
+        "/mnt/pool/tank2",
+        "/mnt/pool/tank3"
+    ],
+  "db_path": "fileindex.db",
   "enable_exclusions": false,
-  "exclude_extensions": [".tmp", ".log", ".pyc"],
-  "exclude_patterns": ["*.tmp", "backup_*"],
-  "exclude_directories": ["__pycache__", ".git", "node_modules"]
+  "exclude_extensions": [
+    ".tmp",
+    ".log",
+    ".cache",
+    ".pyc",
+  ],
+  "exclude_patterns": [
+    "*.tmp",
+    "backup_*",
+    "*~",
+    "*.bak",
+    ".DS_Store",
+    "Thumbs.db"
+  ],
+  "exclude_directories": [
+    "__pycache__",
+    ".git",
+    ".svn",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".idea",
+    ".vscode",
+    "build",
+    "dist"
+  ]
 }

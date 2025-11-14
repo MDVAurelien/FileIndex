@@ -1,6 +1,6 @@
 """
 FileIndex - Fast file indexing and search tool
-Version: 1.1.0
+Version: 1.2.0
 License: LGPL-3.0
 """
 
@@ -11,7 +11,7 @@ def load_config():
     Load configuration from config.json.
     
     Returns:
-        dict: Configuration dictionary with dataset_path and db_path
+        dict: Configuration dictionary with dataset_paths (list) and db_path
         
     Exits:
         If config file is missing, invalid, or missing required fields
@@ -22,11 +22,26 @@ def load_config():
             config = json.load(f)
         
         # Validate that required fields are present
-        if "dataset_path" not in config:
-            print("Error: 'dataset_path' missing in config.json")
+        if "dataset_paths" not in config:
+            print("Error: 'dataset_paths' missing in config.json")
             sys.exit(1)
         if "db_path" not in config:
             print("Error: 'db_path' missing in config.json")
+            sys.exit(1)
+        
+        # Validate that dataset_paths is a list
+        if not isinstance(config["dataset_paths"], list):
+            print("Error: 'dataset_paths' must be a list of strings")
+            sys.exit(1)
+        
+        # Validate that all paths are strings
+        if not all(isinstance(p, str) for p in config["dataset_paths"]):
+            print("Error: All paths in 'dataset_paths' must be strings")
+            sys.exit(1)
+        
+        # Validate that list is not empty
+        if len(config["dataset_paths"]) == 0:
+            print("Error: 'dataset_paths' cannot be empty")
             sys.exit(1)
         
         # Set default for exclude_extensions if not present
@@ -57,13 +72,13 @@ def load_config():
         sys.exit(1)
 
 
-def index_files(dataset_path, db_name, exclude_extensions=None, exclude_patterns=None, exclude_directories=None, enable_exclusions=False):
+def index_files(dataset_paths, db_name, exclude_extensions=None, exclude_patterns=None, exclude_directories=None, enable_exclusions=False):
     """
-    Index all files from dataset_path into the database.
+    Index all files from dataset_paths into the database.
     Updates modified files and removes deleted files.
     
     Args:
-        dataset_path (str): Root directory to scan for files
+        dataset_paths (list): List of root directories to scan for files
         db_name (str): Path to the SQLite database file
         exclude_extensions (list): List of file extensions to exclude (e.g., ['.tmp', '.log', '.pyc'])
         exclude_patterns (list): List of glob patterns to exclude files (e.g., ['*.tmp', 'backup_*'])
@@ -90,15 +105,16 @@ def index_files(dataset_path, db_name, exclude_extensions=None, exclude_patterns
     # Normalize extensions to lowercase with leading dot
     exclude_extensions = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' 
                          for ext in exclude_extensions]
-    # Validate that the dataset path exists
-    if not os.path.exists(dataset_path):
-        print(f"Error: Path '{dataset_path}' does not exist.")
-        return False
     
-    # Validate that the dataset path is a directory
-    if not os.path.isdir(dataset_path):
-        print(f"Error: '{dataset_path}' is not a directory.")
-        return False
+    # Validate all dataset paths
+    for dataset_path in dataset_paths:
+        if not os.path.exists(dataset_path):
+            print(f"Error: Path '{dataset_path}' does not exist.")
+            return False
+        
+        if not os.path.isdir(dataset_path):
+            print(f"Error: '{dataset_path}' is not a directory.")
+            return False
 
     try:
         # Record start time for performance measurement
@@ -123,47 +139,51 @@ def index_files(dataset_path, db_name, exclude_extensions=None, exclude_patterns
         errors = []      # Collect any errors encountered
         excluded = 0     # Count excluded files
         
-        # Walk through all directories and subdirectories
-        for root, dirs, files in os.walk(dataset_path):
-            # Filter out excluded directories (modifies dirs in-place to prevent os.walk from descending)
-            # Keep only directories that do NOT match any exclusion pattern
-            dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclude_directories)]
+        # Process each dataset path
+        for dataset_path in dataset_paths:
+            print(f"Scanning: {dataset_path}")
             
-            for f in files:
-                # Build full path to file
-                path = os.path.join(root, f)
+            # Walk through all directories and subdirectories
+            for root, dirs, files in os.walk(dataset_path):
+                # Filter out excluded directories (modifies dirs in-place to prevent os.walk from descending)
+                # Keep only directories that do NOT match any exclusion pattern
+                dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, pattern) for pattern in exclude_directories)]
                 
-                # Check if file extension should be excluded
-                _, ext = os.path.splitext(path)
-                if ext.lower() in exclude_extensions:
-                    excluded += 1
-                    continue
-                
-                # Check if filename matches any exclusion pattern
-                # Use basename to match only the filename, not the full path
-                if any(fnmatch.fnmatch(f, pattern) for pattern in exclude_patterns):
-                    excluded += 1
-                    continue
-                
-                try:
-                    # Get file modification time
-                    mtime = os.path.getmtime(path)
-                    scanned.add(path)
+                for f in files:
+                    # Build full path to file
+                    path = os.path.join(root, f)
                     
-                    # Check if file already exists in database
-                    if path in existing:
-                        # Update only if modification time changed
-                        if existing[path] != mtime:
-                            c.execute("UPDATE files SET mtime=? WHERE path=?", (mtime, path))
-                    else:
-                        # Insert new file into database
-                        c.execute("INSERT INTO files VALUES (?, ?)", (path, mtime))
-                except OSError as e:
-                    # Handle file access errors (permissions, etc.)
-                    errors.append(f"Cannot access {path}: {e}")
-                except Exception as e:
-                    # Handle any other unexpected errors
-                    errors.append(f"Error with {path}: {e}")
+                    # Check if file extension should be excluded
+                    _, ext = os.path.splitext(path)
+                    if ext.lower() in exclude_extensions:
+                        excluded += 1
+                        continue
+                    
+                    # Check if filename matches any exclusion pattern
+                    # Use basename to match only the filename, not the full path
+                    if any(fnmatch.fnmatch(f, pattern) for pattern in exclude_patterns):
+                        excluded += 1
+                        continue
+                    
+                    try:
+                        # Get file modification time
+                        mtime = os.path.getmtime(path)
+                        scanned.add(path)
+                        
+                        # Check if file already exists in database
+                        if path in existing:
+                            # Update only if modification time changed
+                            if existing[path] != mtime:
+                                c.execute("UPDATE files SET mtime=? WHERE path=?", (mtime, path))
+                        else:
+                            # Insert new file into database
+                            c.execute("INSERT INTO files VALUES (?, ?)", (path, mtime))
+                    except OSError as e:
+                        # Handle file access errors (permissions, etc.)
+                        errors.append(f"Cannot access {path}: {e}")
+                    except Exception as e:
+                        # Handle any other unexpected errors
+                        errors.append(f"Error with {path}: {e}")
 
         # Remove files from database that no longer exist on filesystem
         deleted = 0
@@ -180,7 +200,7 @@ def index_files(dataset_path, db_name, exclude_extensions=None, exclude_patterns
         elapsed_time = time.time() - start_time
         
         # Display summary of indexing operation with timing
-        print(f"Indexing complete. {len(scanned)} files indexed, {deleted} files removed.")
+        print(f"\nIndexing complete. {len(scanned)} files indexed, {deleted} files removed.")
         if excluded > 0:
             print(f"Excluded {excluded} files based on extension/pattern filters.")
         print(f"Time elapsed: {elapsed_time:.2f} seconds")
@@ -258,7 +278,7 @@ if __name__ == "__main__":
     
     # Load configuration from config.json
     config = load_config()
-    dataset_path = config["dataset_path"]
+    dataset_paths = config["dataset_paths"]  # Must be a list
     db_name = config["db_path"]
     exclude_extensions = config.get("exclude_extensions", [])
     exclude_patterns = config.get("exclude_patterns", [])
@@ -267,7 +287,7 @@ if __name__ == "__main__":
 
     # Handle "index" command
     if command == "index":
-        success = index_files(dataset_path, db_name, exclude_extensions, exclude_patterns, exclude_directories, enable_exclusions)
+        success = index_files(dataset_paths, db_name, exclude_extensions, exclude_patterns, exclude_directories, enable_exclusions)
         # Exit with appropriate code (0 = success, 1 = failure)
         sys.exit(0 if success else 1)
     

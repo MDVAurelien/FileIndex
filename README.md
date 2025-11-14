@@ -48,7 +48,7 @@ git clone https://github.com/MDVAurelien/FileIndex.git
         "/mnt/pool/tank3"
     ],
   "db_path": "fileindex.db",
-  "enable_exclusions": false,
+  "enable_exclusions": true,
   "exclude_extensions": [
     ".tmp",
     ".log",
